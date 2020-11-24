@@ -37,8 +37,12 @@ def getValidateTweet(tweetArray):
     return validTweets
 
 
-def resolveLinkShortener(tweetArray):
-    return 0
+def resolveUserMentions(splitTweetArray):
+    for tweet in splitTweetArray:
+        for user in tweet['tweet'].entities['user_mentions']:
+            screenName = user['screen_name']
+            tweet['teaser'] = tweet['teaser'].replace("@" + screenName, '<a href="https://twitter.com/' + screenName + '">@' + screenName + '</a>')
+    return splitTweetArray
 
 
 def splitTweetInParts(tweetArray, bot, telegramAdminChatId):
@@ -75,8 +79,13 @@ def fetchNewTweets(bot, telegramAdminChatId):
     lastTweets = getLastTweet(api)
     validTweets = getValidateTweet(lastTweets)
     splitTweetArray = splitTweetInParts(validTweets, bot, telegramAdminChatId)
-  
+    resolvedUserMentionsTweetArray = resolveUserMentions(splitTweetArray)
+    for t in resolvedUserMentionsTweetArray:
+        print(t['teaser'])
 
+def sendTweetToTelegram(tweetArray):
+    #parse_mode = telegram.ParseMode.HTML
+    return 0
 
 def main():
     print("---")
