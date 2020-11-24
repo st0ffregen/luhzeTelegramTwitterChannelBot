@@ -21,7 +21,7 @@ def OAuth():
 
 
 def getLastTweet(api):
-    return api.user_timeline(id="@luhze_leipzig", count=10, tweet_mode='extended')#api.me(), count=10)[i])
+    return api.user_timeline(id="@luhze_leipzig", count=5, tweet_mode='extended')#api.me(), count=10)[i])
 
 
 def getValidateTweet(tweetArray):
@@ -39,6 +39,7 @@ def getValidateTweet(tweetArray):
 
 
 def resolveUserMentions(splitTweetArray):
+    print("resolve user mentions")
     for tweet in splitTweetArray:
         for user in tweet['tweet'].entities['user_mentions']:
             screenName = user['screen_name']
@@ -75,18 +76,31 @@ def splitTweetInParts(tweetArray, bot, telegramAdminChatId):
 
 
 def fetchNewTweets(bot, telegramAdminChatId):
+    print("fetch new tweets")
     oauth = OAuth()
     api = tweepy.API(oauth)
     lastTweets = getLastTweet(api)
     validTweets = getValidateTweet(lastTweets)
     splitTweetArray = splitTweetInParts(validTweets, bot, telegramAdminChatId)
-    resolvedUserMentionsTweetArray = resolveUserMentions(splitTweetArray)
-    return 0
+    return resolveUserMentions(splitTweetArray)
 
 
-def sendTweetToTelegram(tweetArray):
-    #parse_mode = telegram.ParseMode.HTML
+def craftText(tweet):
+    if tweet['pictureCredits'] is None:
+        text = "\n" + tweet['teaser'] + "\n\n" + u"\u27A1" + " " + tweet['linkToArticle']
+    else:
+        text = "\n" + tweet['teaser'] + "\n\n" + u"\u27A1" + " " + tweet['linkToArticle'] + "\n\n" + u"\U0001F4F8" + " " + tweet['pictureCredits']
+
+    return text
+
+
+def sendTweetToTelegram(bot, tweetArray):
+    print("send " + str(len(tweetArray)) + " tweets to telegram")
+    channelId = os.environ['TELEGRAM_CHANNEL_ID']
+    for tweet in tweetArray:
+        bot.send_photo(chat_id=channelId, photo=tweet['pictureLink'], caption= craftText(tweet), parse_mode=telegram.ParseMode.HTML)
     return 0
+
 
 def main():
     print("---")
@@ -99,8 +113,8 @@ def main():
 
     try:
         bot = initTelegramBot()
-        fetchNewTweets(bot, telegramAdminChatId)
-
+        newTweets = fetchNewTweets(bot, telegramAdminChatId)
+        sendTweetToTelegram(bot, newTweets)
 
     except tweepy.error.TweepError as e:
         print(f"error while working with tweepy: {e}")
