@@ -26,10 +26,13 @@ def getLastTweet(api):
 
 def getValidateTweet(tweetArray):
     print("validate tweets")
+    intervalSeconds = int(os.environ['INTERVAL_SECONDS'])
+    intervalDays = int(os.environ['INTERVAL_DAYS'])
+
     validTweets = []
     for tweet in tweetArray:
-        if (datetime.now() - tweet.created_at).seconds < int(os.environ['INTERVAL_SECONDS']) and \
-                    (datetime.now() - tweet.created_at).days < int(os.environ['INTERVAL_DAYS']) and \
+        if (datetime.now() - tweet.created_at).seconds <= intervalSeconds and \
+                    (datetime.now() - tweet.created_at).days <= intervalDays and \
                 u"\u27A1" in tweet.full_text and "https://t.co/" in tweet.full_text and \
                 True in [medium['type'] == 'photo' for medium in tweet.entities['media']] and \
                 tweet.in_reply_to_status_id is None:
@@ -81,6 +84,9 @@ def fetchNewTweets(bot, telegramAdminChatId):
     api = tweepy.API(oauth)
     lastTweets = getLastTweet(api)
     validTweets = getValidateTweet(lastTweets)
+    if len(validTweets) == 0:
+        print("no new tweets in feed found")
+        return []
     splitTweetArray = splitTweetInParts(validTweets, bot, telegramAdminChatId)
     return resolveUserMentions(splitTweetArray)
 
