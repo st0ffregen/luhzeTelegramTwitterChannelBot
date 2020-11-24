@@ -21,7 +21,7 @@ def OAuth():
 
 
 def getLastTweet(api):
-    return api.user_timeline(id="@luhze_leipzig", count=30, tweet_mode='extended')#api.me(), count=10)[i])
+    return api.user_timeline(id="@luhze_leipzig", count=10, tweet_mode='extended')#api.me(), count=10)[i])
 
 
 def getValidateTweet(tweetArray):
@@ -31,7 +31,8 @@ def getValidateTweet(tweetArray):
         if (datetime.now() - tweet.created_at).seconds < int(os.environ['INTERVAL_SECONDS']) and \
                     (datetime.now() - tweet.created_at).days < int(os.environ['INTERVAL_DAYS']) and \
                 u"\u27A1" in tweet.full_text and "https://t.co/" in tweet.full_text and \
-                True in [medium['type'] == 'photo' for medium in tweet.entities['media']]:
+                True in [medium['type'] == 'photo' for medium in tweet.entities['media']] and \
+                tweet.in_reply_to_status_id is None:
             validTweets.append(tweet)
 
     return validTweets
@@ -80,8 +81,8 @@ def fetchNewTweets(bot, telegramAdminChatId):
     validTweets = getValidateTweet(lastTweets)
     splitTweetArray = splitTweetInParts(validTweets, bot, telegramAdminChatId)
     resolvedUserMentionsTweetArray = resolveUserMentions(splitTweetArray)
-    for t in resolvedUserMentionsTweetArray:
-        print(t['teaser'])
+    return 0
+
 
 def sendTweetToTelegram(tweetArray):
     #parse_mode = telegram.ParseMode.HTML
