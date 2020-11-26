@@ -21,7 +21,7 @@ def OAuth():
 
 
 def getLastTweet(api):
-    return api.user_timeline(id="@luhze_leipzig", count=5, tweet_mode='extended')#api.me(), count=10)[i])
+    return api.user_timeline(id=api.me(), count=5, tweet_mode='extended')
 
 
 def getValidateTweet(tweetArray):
