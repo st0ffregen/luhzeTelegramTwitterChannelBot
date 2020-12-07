@@ -15,13 +15,15 @@ def initTelegramBot():
 
 
 def OAuth():
+    print("authenticate to twitter")
     auth = tweepy.OAuthHandler(os.environ['TWITTER_API_KEY'], os.environ['TWITTER_API_SECRET_KEY'])
     auth.set_access_token(os.environ['TWITTER_ACCESS_TOKEN'], os.environ['TWITTER_ACCESS_TOKEN_SECRET'])
     return auth
 
 
 def getLastTweet(api):
-    return api.user_timeline(id=api.me(), count=5, tweet_mode='extended')
+    print("get last tweets")
+    return api.user_timeline(id="luhze_leipzig", count=5, tweet_mode='extended')
 
 
 def getValidateTweet(tweetArray):
