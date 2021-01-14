@@ -14,11 +14,12 @@ def initTelegramBot():
     return telegram.Bot(token=os.environ['TELEGRAM_TOKEN'])
 
 
-def OAuth():
+def doAuth():
     print("authenticate to twitter")
     auth = tweepy.OAuthHandler(os.environ['TWITTER_API_KEY'], os.environ['TWITTER_API_SECRET_KEY'])
     auth.set_access_token(os.environ['TWITTER_ACCESS_TOKEN'], os.environ['TWITTER_ACCESS_TOKEN_SECRET'])
-    return auth
+    api = tweepy.API(auth)
+    return api
 
 
 def getLastTweet(api):
@@ -61,29 +62,35 @@ def splitTweetInParts(tweetArray, bot, telegramAdminChatId):
         linkToArticle = tweet.entities['urls'][0]['expanded_url'].strip()
         # get credits if present
         splitOnCameraSign = tweet.full_text.split(u"\U0001F4F8")
-        if len(splitOnCameraSign) > 1:
-            try:
-                pictureCredits = splitOnCameraSign[1].split(" ")
-                photographerName = ""
-                for i in range(0, len(pictureCredits)-1):
-                    photographerName += " " + pictureCredits[i]
+        photographerName = getPhotographer(splitOnCameraSign, bot, telegramAdminChatId, tweet)
 
-            except IndexError as e:
-                print("picture credits present in the wrong format in " + tweet.entities['media'][0]['url'])
-                bot.send_message(chat_id=telegramAdminChatId,
-                                 text="picture credits present in the wrong format in " + tweet.entities['media'][0]['url'])
-        else:
-            photographerName = None
         splitTweetArray.append({'tweet': tweet, 'teaser': teaser, 'pictureLink': pictureLink,
                                 'linkToArticle': linkToArticle, 'pictureCredits': photographerName})
 
     return splitTweetArray
 
 
+def getPhotographer(splitOnCameraSign, bot, telegramAdminChatId, tweet):
+    if len(splitOnCameraSign) > 1:
+        try:
+            # not sure why i do not just assign photographerName to splitOnCameraSign[1]
+            pictureCredits = splitOnCameraSign[1].split(" ")
+            photographerName = ""
+            for i in range(0, len(pictureCredits) - 1):
+                photographerName += " " + pictureCredits[i]
+
+            return photographerName
+
+        except IndexError as e:
+            print("picture credits present in the wrong format in " + tweet.entities['media'][0]['url'])
+            bot.send_message(chat_id=telegramAdminChatId,
+                             text="picture credits present in the wrong format in " + tweet.entities['media'][0]['url'])
+
+    return None
+
 def fetchNewTweets(bot, telegramAdminChatId):
     print("fetch new tweets")
-    oauth = OAuth()
-    api = tweepy.API(oauth)
+    api = doAuth()
     lastTweets = getLastTweet(api)
     validTweets = getValidateTweet(lastTweets)
     if len(validTweets) == 0:
