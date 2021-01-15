@@ -19,7 +19,7 @@ class TestBot(unittest.TestCase):
                                               " Herausforderung sein, das passende Sportangebot "
                                               "zu finden. Das sächsische Projekt „miss“ setzt sich"
                                               " deswegen für mehr Inklusion im Sport ein.",
-                                      "url": "https://www.luhze.de/2020/11/25/barriere-frei/",
+                                      "url": "<a href=\"https://www.luhze.de/2020/11/25/barriere-frei/\">luhze.de/2020/11/25/bar…</a>",
                                       "pictureLink": "https://pbs.twimg.com/media/EnrLd-6XcAEm7Na.jpg",
                                       "credits": "Andi Weiland, <a href=\"http://Gesellschaftsbilder.de\">Gesellschaftsbilder</a>"}
 
@@ -30,7 +30,7 @@ class TestBot(unittest.TestCase):
                                                " zu Gewaltmechanismen. Der Stura (<a "
                                                "href=\"https://twitter.com/StuRa_UL\">@StuRa_UL</a>) der Universität"
                                                " hatte seine Ausladung gefordert.",
-                                       "url": "https://www.luhze.de/2020/10/26/protest-gegen-joerg-baberowski/",
+                                       "url": "<a href=\"https://www.luhze.de/2020/10/26/protest-gegen-joerg-baberowski/\">luhze.de/2020/10/26/pro…</a>",
                                        "pictureLink": "https://pbs.twimg.com/media/ElRbFNCXEAQ4u6Q.jpg",
                                        "credits": None}
 
@@ -38,7 +38,7 @@ class TestBot(unittest.TestCase):
                                 "text": "Die Mosaic-Arktisexpedition untersuchte den Zustand der Natur rund um den "
                                         "Nordpol. luhze-Redakteur Niclas Stoffregen sprach mit dem Leipziger "
                                         "Meteorologen Manfred Wen­disch, der im Flugzeug dabei war.",
-                                "url": "https://www.luhze.de/2020/10/12/die-expedition-ist-ein-meilenstein/",
+                                "url": "<a href=\"https://www.luhze.de/2020/10/12/die-expedition-ist-ein-meilenstein/\">luhze.de/2020/10/12/die…</a>",
                                 "pictureLink": "https://pbs.twimg.com/media/EkMu0AaXYAAwoH4.jpg",
                                 "credits": "Stephan Schön / Sächsische Zeitung"}
 

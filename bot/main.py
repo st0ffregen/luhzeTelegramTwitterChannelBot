@@ -60,6 +60,7 @@ def splitTweetInParts(tweetArray):
         teaser = tweet.full_text.split("\n")[0].strip()
         pictureLink = tweet.entities['media'][0]['media_url_https'].strip()
         linkToArticle = tweet.entities['urls'][0]['expanded_url'].strip()
+        linkToArticleShort = tweet.entities['urls'][0]['display_url'].strip()
         # get credits if present
         splitOnCameraSign = tweet.full_text.split(u"\U0001F4F8")
         photographerName = None
@@ -67,9 +68,13 @@ def splitTweetInParts(tweetArray):
             photographerName = ' '.join(splitOnCameraSign[1].split(' ')[:-1])
 
         splitTweetArray.append({'tweet': tweet, 'teaser': teaser, 'pictureLink': pictureLink,
-                                'linkToArticle': linkToArticle, 'pictureCredits': photographerName})
+                                'linkToArticle': addATagToLink(linkToArticle, linkToArticleShort), 'pictureCredits': photographerName})
 
     return splitTweetArray
+
+
+def addATagToLink(linkToArticle, linkToArticleShort):
+    return "<a href=\"" + linkToArticle + "\">" + linkToArticleShort + "</a>"
 
 
 def fetchNewTweets():
