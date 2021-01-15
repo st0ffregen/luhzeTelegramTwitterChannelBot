@@ -111,8 +111,8 @@ def main():
     bot = None
 
     try:
-        bot = initTelegramBot()
         newTweets = fetchNewTweets()
+        bot = initTelegramBot()
         sendTweetToTelegram(bot, newTweets)
 
     except tweepy.error.TweepError as e:
