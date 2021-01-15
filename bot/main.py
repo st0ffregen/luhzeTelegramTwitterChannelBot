@@ -53,7 +53,7 @@ def resolveUserMentions(splitTweetArray):
     return splitTweetArray
 
 
-def splitTweetInParts(tweetArray, bot, telegramAdminChatId):
+def splitTweetInParts(tweetArray):
     print("split tweet in parts")
     splitTweetArray = []
     for tweet in tweetArray:
@@ -62,7 +62,9 @@ def splitTweetInParts(tweetArray, bot, telegramAdminChatId):
         linkToArticle = tweet.entities['urls'][0]['expanded_url'].strip()
         # get credits if present
         splitOnCameraSign = tweet.full_text.split(u"\U0001F4F8")
-        photographerName = getPhotographer(splitOnCameraSign, bot, telegramAdminChatId, tweet)
+        photographerName = None
+        if len(splitOnCameraSign) > 1:
+            photographerName = ' '.join(splitOnCameraSign[1].split(' ')[:-1])
 
         splitTweetArray.append({'tweet': tweet, 'teaser': teaser, 'pictureLink': pictureLink,
                                 'linkToArticle': linkToArticle, 'pictureCredits': photographerName})
@@ -70,25 +72,7 @@ def splitTweetInParts(tweetArray, bot, telegramAdminChatId):
     return splitTweetArray
 
 
-def getPhotographer(splitOnCameraSign, bot, telegramAdminChatId, tweet):
-    if len(splitOnCameraSign) > 1:
-        try:
-            # not sure why i do not just assign photographerName to splitOnCameraSign[1]
-            pictureCredits = splitOnCameraSign[1].split(" ")
-            photographerName = ""
-            for i in range(0, len(pictureCredits) - 1):
-                photographerName += " " + pictureCredits[i]
-
-            return photographerName
-
-        except IndexError as e:
-            print("picture credits present in the wrong format in " + tweet.entities['media'][0]['url'])
-            bot.send_message(chat_id=telegramAdminChatId,
-                             text="picture credits present in the wrong format in " + tweet.entities['media'][0]['url'])
-
-    return None
-
-def fetchNewTweets(bot, telegramAdminChatId):
+def fetchNewTweets():
     print("fetch new tweets")
     api = doAuth()
     lastTweets = getLastTweet(api)
@@ -96,7 +80,7 @@ def fetchNewTweets(bot, telegramAdminChatId):
     if len(validTweets) == 0:
         print("no new tweets in feed found")
         return []
-    splitTweetArray = splitTweetInParts(validTweets, bot, telegramAdminChatId)
+    splitTweetArray = splitTweetInParts(validTweets)
     return resolveUserMentions(splitTweetArray)
 
 
@@ -128,7 +112,7 @@ def main():
 
     try:
         bot = initTelegramBot()
-        newTweets = fetchNewTweets(bot, telegramAdminChatId)
+        newTweets = fetchNewTweets()
         sendTweetToTelegram(bot, newTweets)
 
     except tweepy.error.TweepError as e:
