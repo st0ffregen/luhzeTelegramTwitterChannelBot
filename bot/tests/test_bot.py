@@ -114,6 +114,9 @@ class TestBot(unittest.TestCase):
         userMentionsArray = main.resolveUserMentions(splitTweet)
         self.assertEqual(0, main.sendTweetToTelegram(self.bot, userMentionsArray))
 
+    def test_check_if_link_is_in_feed(self):
+        self.assertFalse(main.checkIfLinkIsInFeed("https://www.luhze.de/2020/11/25/barriere-frei/"))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -2,11 +2,23 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
 import tweepy
-import re
 import sys
 import os
 import telegram
 import traceback
+import feedparser
+
+
+def checkIfLinkIsInFeed(link):
+    print("read in feed")
+    NewsFeed = feedparser.parse("https://luhze.de/rss")
+    entries = NewsFeed.entries
+
+    for entry in entries:
+        if entry.link == link:
+            return True
+
+    return False
 
 
 def initTelegramBot():
@@ -38,7 +50,7 @@ def getValidateTweet(tweetArray):
                     (datetime.now() - tweet.created_at).days <= intervalDays and \
                 u"\u27A1" in tweet.full_text and "https://t.co/" in tweet.full_text and \
                 True in [medium['type'] == 'photo' for medium in tweet.entities['media']] and \
-                tweet.in_reply_to_status_id is None:
+                tweet.in_reply_to_status_id is None and checkIfLinkIsInFeed(tweet['urls'][0]['expanded_url'].strip()):
             validTweets.append(tweet)
 
     return validTweets
