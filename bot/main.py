@@ -62,6 +62,14 @@ def resolveUrls(tweetObjectArray):
     return tweetObjectArray
 
 
+def resolveHashtags(tweetObjectArray):
+    print("resolve hashtags")
+    for tweet in tweetObjectArray:
+        for hashtag in tweet['tweet'].entities['hashtags']:
+            tweet['text'] = tweet['text'].replace('#' + hashtag['text'], '<a href="https://twitter.com/hashtag/' + hashtag['text'] + '?src=hashtag_click">#' + hashtag['text'] + '</a>')
+    return tweetObjectArray
+
+
 def resolveUserMentions(tweetObjectArray):
     print("resolve user mentions")
     for tweet in tweetObjectArray:

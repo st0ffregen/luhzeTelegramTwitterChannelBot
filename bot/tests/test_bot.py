@@ -25,6 +25,10 @@ class TestBot(unittest.TestCase):
 
     statusWithUserMentionsToResolve = {"id": "1320781058774806529",
                                        "text": "Protest gegen Jörg Baberowski: Der Historiker aus Berlin hielt am "
+                                               "Donnerstag im Paulinum der @UniLeipzig einen Vortrag zu Gewaltmechanismen. Der Stura"
+                                               " (@StuRa_UL) der Universität"
+                                               " hatte seine Ausladung gefordert.\n\n" + u"\u27A1" + "️https://t.co/Aqu9KR7Cfw https://t.co/FM735bEzED",
+                                       "textAfterUserMentionsResolved": "Protest gegen Jörg Baberowski: Der Historiker aus Berlin hielt am "
                                                "Donnerstag im Paulinum der "
                                                "<a href=\"https://twitter.com/UniLeipzig\">@UniLeipzig</a> einen Vortrag"
                                                " zu Gewaltmechanismen. Der Stura (<a "
@@ -39,8 +43,11 @@ class TestBot(unittest.TestCase):
                                        "credits": None}
 
     statusAdvertisingArticle = {"id": "1315947779739574280",
-                                "text": ""
-                                        "Die Mosaic-Arktisexpedition untersuchte den Zustand der Natur rund um den Nordpol. luhze-Redakteur Niclas Stoffregen sprach mit dem Leipziger Meteorologen Manfred Wen­disch, der im Flugzeug dabei war.\n\n" + u"\u27A1" + "️https://t.co/Fu6NTSjb9g\n\n" + u"\U0001F4F8" + "Stephan Schön / Sächsische Zeitung https://t.co/eBiQ3F9rIU",
+                                "text": "Die Mosaic-Arktisexpedition untersuchte den Zustand der Natur rund um den "
+                                        "Nordpol. luhze-Redakteur Niclas Stoffregen sprach mit dem Leipziger "
+                                        "Meteorologen Manfred Wen­disch, der im Flugzeug dabei war.\n\n" + u"\u27A1" +
+                                        "️https://t.co/Fu6NTSjb9g\n\n" + u"\U0001F4F8" + "Stephan Schön / Sächsische "
+                                                                                         "Zeitung https://t.co/eBiQ3F9rIU",
                                 "url": "<a href=\"https://www.luhze.de/2020/10/12/die-expedition-ist-ein-meilenstein/\">luhze.de/2020/10/12/die…</a>",
                                 "pictureLink": "https://pbs.twimg.com/media/EkMu0AaXYAAwoH4.jpg",
                                 "credits": "Stephan Schön / Sächsische Zeitung"}
@@ -50,7 +57,8 @@ class TestBot(unittest.TestCase):
     # neu: muessen noch behandelt werden
     statusWithTextAfterPhotoCreditsId = "1290923771818389506"
     statusWithTextAfterLinkAndWithoutPhotoCreditsId = "1286978882349006848"
-    statusWithHashtagsInTextAndTextAndHashtagAfterLinkWithoutPhotoCreditsId = "1282685691005149189"
+    statusWithHashtagsInTextAndTextAndHashtagAfterLinkWithoutPhotoCredits = {"id": "1282685691005149189",
+                                                                             "text": "Wegen der Coronakrise kann die <a href=\"https://twitter.com/hashtag/FridaysForFuture?src=hashtag_click\">#FridaysForFuture</a>-Bewegung nicht wie gewohnt auf der Straße demonstrieren. luhze-Redakteurin Nele Sikau sprach mit Aktivistin Annelie Berger über die Zukunft von @F4F_Leipzig.\n\n" + u"\u27A1" + "️https://t.co/Kn6rIv6QkY\n\nInterview aus der Juli-Ausgabe\n\n<a href=\"https://twitter.com/hashtag/Leipzig?src=hashtag_click\">#Leipzig</a> https://t.co/wCALUzqbzx"}
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -67,7 +75,7 @@ class TestBot(unittest.TestCase):
         cls.statusIsDifferentWithPictureTweet = cls.api.get_status(cls.statusNotAdvertisingArticleWithPictureId,
                                                                    tweet_mode="extended")
         cls.statusWithHashtagsInTextAndTextAndHashtagAfterLinkWithoutPhotoCreditsTweet = \
-            cls.api.get_status(cls.statusWithHashtagsInTextAndTextAndHashtagAfterLinkWithoutPhotoCreditsId,
+            cls.api.get_status(cls.statusWithHashtagsInTextAndTextAndHashtagAfterLinkWithoutPhotoCredits['id'],
                                tweet_mode="extended")
 
     def test_init_bot(self):
@@ -119,7 +127,15 @@ class TestBot(unittest.TestCase):
         userMentionsArray = main.resolveUserMentions(tweetObjectArray)
         self.assertIsInstance(userMentionsArray, list)
         self.assertEqual(self.statusWithCreditsURLsToResolve['text'], userMentionsArray[0]['text'])
-        self.assertEqual(self.statusWithUserMentionsToResolve['text'], userMentionsArray[1]['text'])
+        self.assertEqual(self.statusWithUserMentionsToResolve['textAfterUserMentionsResolved'], userMentionsArray[1]['text'])
+
+    def test_resolve_hashtags(self):
+        tweetObjectArray = main.craftTweetObjectArray(
+            [self.statusWithCreditsURLsToResolveTweet, self.statusWithUserMentionsToResolveTweet, self.statusWithHashtagsInTextAndTextAndHashtagAfterLinkWithoutPhotoCreditsTweet])
+        resolvedHashtagsArray = main.resolveHashtags(tweetObjectArray)
+        self.assertEqual(self.statusWithCreditsURLsToResolve['text'], resolvedHashtagsArray[0]['text'])
+        self.assertEqual(self.statusWithUserMentionsToResolve['text'], resolvedHashtagsArray[1]['text'])
+        self.assertEqual(self.statusWithHashtagsInTextAndTextAndHashtagAfterLinkWithoutPhotoCredits['text'], resolvedHashtagsArray[2]['text'])
 
     def test_fetch_new_tweets(self):
         # kann sein, dass gerade ein artikel tweet hochgeladen wurde, dann schlägt der test fehl
