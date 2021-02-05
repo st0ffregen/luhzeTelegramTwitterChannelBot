@@ -15,7 +15,7 @@ def checkIfLinkIsInFeed(link):
     entries = NewsFeed.entries
 
     for entry in entries:
-        if entry.link == link:
+        if entry.link.strip() == link:
             return True
 
     return False
@@ -39,10 +39,8 @@ def getLastTweet(api):
     return api.user_timeline(id="luhze_leipzig", count=5, tweet_mode='extended')
 
 
-def getValidateTweet(tweetArray):
+def getValidateTweet(tweetArray, intervalSeconds, intervalDays):
     print("validate tweets")
-    intervalSeconds = int(os.environ['INTERVAL_SECONDS'])
-    intervalDays = int(os.environ['INTERVAL_DAYS'])
 
     validTweets = []
     for tweet in tweetArray:
@@ -50,71 +48,74 @@ def getValidateTweet(tweetArray):
                     (datetime.now() - tweet.created_at).days <= intervalDays and \
                 u"\u27A1" in tweet.full_text and "https://t.co/" in tweet.full_text and \
                 True in [medium['type'] == 'photo' for medium in tweet.entities['media']] and \
-                tweet.in_reply_to_status_id is None and checkIfLinkIsInFeed(tweet['urls'][0]['expanded_url'].strip()):
+                tweet.in_reply_to_status_id is None and checkIfLinkIsInFeed(tweet.entities['urls'][0]['expanded_url'].strip()):
             validTweets.append(tweet)
 
     return validTweets
 
 
-def resolveUserMentions(splitTweetArray):
+def resolveUserMentions(tweetObjectArray):
     print("resolve user mentions")
-    for tweet in splitTweetArray:
+    for tweet in tweetObjectArray:
         for user in tweet['tweet'].entities['user_mentions']:
             screenName = user['screen_name']
-            tweet['teaser'] = tweet['teaser'].replace("@" + screenName, '<a href="https://twitter.com/' + screenName + '">@' + screenName + '</a>')
-    return splitTweetArray
+            tweet['text'] = tweet['text'].replace("@" + screenName, '<a href="https://twitter.com/' + screenName + '">@' + screenName + '</a>')
+    return tweetObjectArray
 
 
-def splitTweetInParts(tweetArray):
-    print("split tweet in parts")
-    splitTweetArray = []
+def craftTweetObjectArray(tweetArray):
+    tweetObjectArray = []
     for tweet in tweetArray:
-        teaser = tweet.full_text.split("\n")[0].strip()
+        text = tweet.full_text.strip()
         pictureLink = tweet.entities['media'][0]['media_url_https'].strip()
         linkToArticle = tweet.entities['urls'][0]['expanded_url'].strip()
         linkToArticleShort = tweet.entities['urls'][0]['display_url'].strip()
-        # get credits if present
-        splitOnCameraSign = tweet.full_text.split(u"\U0001F4F8")
-        photographerName = None
-        if len(splitOnCameraSign) > 1:
-            photographerName = ' '.join(splitOnCameraSign[1].split(' ')[:-1])
 
-        splitTweetArray.append({'tweet': tweet, 'teaser': teaser, 'pictureLink': pictureLink,
-                                'linkToArticle': addATagToLink(linkToArticle, linkToArticleShort), 'pictureCredits': photographerName})
+        tweetObjectArray.append({'tweet': tweet, 'text': text, 'pictureLink': pictureLink,
+                                'linkToArticle': addATagToLink(linkToArticle, linkToArticleShort)})
 
-    return splitTweetArray
+    return tweetObjectArray
 
 
 def addATagToLink(linkToArticle, linkToArticleShort):
     return "<a href=\"" + linkToArticle + "\">" + linkToArticleShort + "</a>"
 
 
-def fetchNewTweets():
+def removeLinkToTweet(tweetObjectArray):
+    for tweet in tweetObjectArray:
+        print("remove " + tweet['tweet'].extended_entities['media'][0]['url'].strip())
+        tweet['text'] = tweet['text'].replace(tweet['tweet'].extended_entities['media'][0]['url'].strip(), "").strip()
+
+    return tweetObjectArray
+
+
+def replaceLinkToArticleWithLuhzeLink(tweetObjectArray):
+    for tweet in tweetObjectArray:
+        tweet['text'] = tweet['text'].replace(tweet['tweet'].entities['urls'][0]['url'].strip(), tweet['linkToArticle']).strip()
+
+    return tweetObjectArray
+
+
+def fetchNewTweets(intervalSeconds, intervalDays):
     print("fetch new tweets")
     api = doAuth()
     lastTweets = getLastTweet(api)
-    validTweets = getValidateTweet(lastTweets)
+    validTweets = getValidateTweet(lastTweets, intervalSeconds, intervalDays)
     if len(validTweets) == 0:
         print("no new tweets in feed found")
         return []
-    splitTweetArray = splitTweetInParts(validTweets)
-    return resolveUserMentions(splitTweetArray)
-
-
-def craftText(tweet):
-    if tweet['pictureCredits'] is None:
-        text = "\n" + tweet['teaser'] + "\n\n" + u"\u27A1" + " " + tweet['linkToArticle']
-    else:
-        text = "\n" + tweet['teaser'] + "\n\n" + u"\u27A1" + " " + tweet['linkToArticle'] + "\n\n" + u"\U0001F4F8" + " " + tweet['pictureCredits']
-
-    return text
+    tweetObjectArray = craftTweetObjectArray(validTweets)
+    resolvedUserMentionsArray = resolveUserMentions(tweetObjectArray)
+    removedUrlArray = removeLinkToTweet(resolvedUserMentionsArray)
+    replacedLinkArray = replaceLinkToArticleWithLuhzeLink(removedUrlArray)
+    return replacedLinkArray
 
 
 def sendTweetToTelegram(bot, tweetArray):
     print("send " + str(len(tweetArray)) + " tweets to telegram")
     channelId = os.environ['TELEGRAM_CHANNEL_ID']
     for tweet in tweetArray:
-        bot.send_photo(chat_id=channelId, photo=tweet['pictureLink'], caption= craftText(tweet), parse_mode=telegram.ParseMode.HTML)
+        bot.send_photo(chat_id=channelId, photo=tweet['pictureLink'], caption=tweet['text'], parse_mode=telegram.ParseMode.HTML)
     return 0
 
 
@@ -124,11 +125,13 @@ def main():
     print("utc time now: " + datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
 
     telegramAdminChatId = os.environ['TELEGRAM_ADMIN_CHAT_ID']
+    intervalSeconds = int(os.environ['INTERVAL_SECONDS'])
+    intervalDays = int(os.environ['INTERVAL_DAYS'])
 
     bot = None
 
     try:
-        newTweets = fetchNewTweets()
+        newTweets = fetchNewTweets(intervalSeconds, intervalDays)
         bot = initTelegramBot()
         sendTweetToTelegram(bot, newTweets)
 
