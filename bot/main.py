@@ -54,6 +54,14 @@ def getValidateTweet(tweetArray, intervalSeconds, intervalDays):
     return validTweets
 
 
+def resolveUrls(tweetObjectArray):
+    print("resolve urls")
+    for tweet in tweetObjectArray:
+        for url in tweet['tweet'].entities['urls']:
+            tweet['text'] = tweet['text'].replace(url['url'], '<a href="' + url['url'] + '">' + url['display_url'] + '</a>')
+    return tweetObjectArray
+
+
 def resolveUserMentions(tweetObjectArray):
     print("resolve user mentions")
     for tweet in tweetObjectArray:
@@ -89,13 +97,6 @@ def removeLinkToTweet(tweetObjectArray):
     return tweetObjectArray
 
 
-def replaceLinkToArticleWithLuhzeLink(tweetObjectArray):
-    for tweet in tweetObjectArray:
-        tweet['text'] = tweet['text'].replace(tweet['tweet'].entities['urls'][0]['url'].strip(), tweet['linkToArticle']).strip()
-
-    return tweetObjectArray
-
-
 def fetchNewTweets(intervalSeconds, intervalDays):
     print("fetch new tweets")
     api = doAuth()
@@ -107,7 +108,7 @@ def fetchNewTweets(intervalSeconds, intervalDays):
     tweetObjectArray = craftTweetObjectArray(validTweets)
     resolvedUserMentionsArray = resolveUserMentions(tweetObjectArray)
     removedUrlArray = removeLinkToTweet(resolvedUserMentionsArray)
-    replacedLinkArray = replaceLinkToArticleWithLuhzeLink(removedUrlArray)
+    replacedLinkArray = resolveUrls(removedUrlArray)
     return replacedLinkArray
 
 

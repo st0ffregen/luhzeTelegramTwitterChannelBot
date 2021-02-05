@@ -18,9 +18,10 @@ class TestBot(unittest.TestCase):
     # natuerlich nicht ganz best practice weil die aus production sind und es durchaus sein kann, dass sie z.b. noch geliked werden
     statusWithCreditsURLsToResolve = {"id": "1331600631904264193",
                                       "text": "Für Menschen mit Behinderungen kann es eine Herausforderung sein, das passende Sportangebot zu finden. Das sächsische Projekt „miss“ setzt sich deswegen für mehr Inklusion im Sport ein.\n\n" + u"\u27A1" + "️https://t.co/B7tVYURD08\n\n" + u"\U0001F4F8" + "Andi Weiland, https://t.co/JAdqeXu0ul https://t.co/kHH6abE9Kp",
+                                      "textAfterUrlsResolved": "Für Menschen mit Behinderungen kann es eine Herausforderung sein, das passende Sportangebot zu finden. Das sächsische Projekt „miss“ setzt sich deswegen für mehr Inklusion im Sport ein.\n\n" + u"\u27A1" + "️<a href=\"https://t.co/B7tVYURD08\">luhze.de/2020/11/25/bar…</a>\n\n" + u"\U0001F4F8" + "Andi Weiland, <a href=\"https://t.co/JAdqeXu0ul\">Gesellschaftsbilder.de</a> https://t.co/kHH6abE9Kp",
                                       "url": "<a href=\"https://www.luhze.de/2020/11/25/barriere-frei/\">luhze.de/2020/11/25/bar…</a>",
                                       "pictureLink": "https://pbs.twimg.com/media/EnrLd-6XcAEm7Na.jpg",
-                                      "credits": "Andi Weiland, <a href=\"http://Gesellschaftsbilder.de\">Gesellschaftsbilder</a>"}
+                                      "credits": "Andi Weiland, <a href=\"http://Gesellschaftsbilder.de\">Gesellschaftsbilder.de</a>"}
 
     statusWithUserMentionsToResolve = {"id": "1320781058774806529",
                                        "text": "Protest gegen Jörg Baberowski: Der Historiker aus Berlin hielt am "
@@ -29,6 +30,10 @@ class TestBot(unittest.TestCase):
                                                " zu Gewaltmechanismen. Der Stura (<a "
                                                "href=\"https://twitter.com/StuRa_UL\">@StuRa_UL</a>) der Universität"
                                                " hatte seine Ausladung gefordert.\n\n" + u"\u27A1" + "️https://t.co/Aqu9KR7Cfw https://t.co/FM735bEzED",
+                                       "textAfterUrlsResolved": "Protest gegen Jörg Baberowski: Der Historiker aus Berlin hielt am "
+                                               "Donnerstag im Paulinum der @UniLeipzig einen Vortrag"
+                                               " zu Gewaltmechanismen. Der Stura (@StuRa_UL) der Universität"
+                                               " hatte seine Ausladung gefordert.\n\n" + u"\u27A1" + "️<a href=\"https://t.co/Aqu9KR7Cfw\">luhze.de/2020/10/26/pro…</a> https://t.co/FM735bEzED",
                                        "url": "<a href=\"https://www.luhze.de/2020/10/26/protest-gegen-joerg-baberowski/\">luhze.de/2020/10/26/pro…</a>",
                                        "pictureLink": "https://pbs.twimg.com/media/ElRbFNCXEAQ4u6Q.jpg",
                                        "credits": None}
@@ -61,6 +66,9 @@ class TestBot(unittest.TestCase):
                                                                       tweet_mode="extended")
         cls.statusIsDifferentWithPictureTweet = cls.api.get_status(cls.statusNotAdvertisingArticleWithPictureId,
                                                                    tweet_mode="extended")
+        cls.statusWithHashtagsInTextAndTextAndHashtagAfterLinkWithoutPhotoCreditsTweet = \
+            cls.api.get_status(cls.statusWithHashtagsInTextAndTextAndHashtagAfterLinkWithoutPhotoCreditsId,
+                               tweet_mode="extended")
 
     def test_init_bot(self):
         self.assertIsNotNone(self.bot)
@@ -94,6 +102,16 @@ class TestBot(unittest.TestCase):
         # check link to article
         self.assertEqual(self.statusWithCreditsURLsToResolve['url'], tweetObjectArray[0]['linkToArticle'])
         self.assertEqual(self.statusAdvertisingArticle['url'], tweetObjectArray[1]['linkToArticle'])
+
+    def test_resolve_urls(self):
+        tweetObjectArray = main.craftTweetObjectArray(
+            [self.statusWithCreditsURLsToResolveTweet, self.statusWithUserMentionsToResolveTweet])
+        urlsResolvedArray = main.resolveUrls(tweetObjectArray)
+        self.assertIsInstance(urlsResolvedArray, list)
+        print(self.statusWithCreditsURLsToResolve['textAfterUrlsResolved'])
+        print(urlsResolvedArray[0]['text'])
+        self.assertEqual(self.statusWithCreditsURLsToResolve['textAfterUrlsResolved'], urlsResolvedArray[0]['text'])
+        self.assertEqual(self.statusWithUserMentionsToResolve['textAfterUrlsResolved'], urlsResolvedArray[1]['text'])
 
     def test_resolve_user_mentions(self):
         tweetObjectArray = main.craftTweetObjectArray(
