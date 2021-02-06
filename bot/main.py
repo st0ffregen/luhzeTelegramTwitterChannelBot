@@ -26,7 +26,15 @@ def checkIfLinkIsInFeed(link):
 
 def initTelegramBot():
     print("initialize telegram bot")
-    return telegram.Bot(token=os.environ['TELEGRAM_TOKEN'])
+    if os.environ['STAGE'] == "testing":
+        token = os.environ['TELEGRAM_TOKEN_TESTING']
+    elif os.environ['STAGE'] == "production":
+        token = os.environ['TELEGRAM_TOKEN']
+    else:
+        print("stage is not specified. exiting")
+        sys.exit(1)
+
+    return telegram.Bot(token=token)
 
 
 def doAuth():
