@@ -160,8 +160,9 @@ def main():
 
     try:
         newTweets = fetchNewTweets(intervalSeconds, intervalDays)
-        bot = initTelegramBot()
-        sendTweetToTelegram(bot, newTweets)
+        if len(newTweets) > 0:
+            bot = initTelegramBot()
+            sendTweetToTelegram(bot, newTweets)
 
     except tweepy.error.TweepError as e:
         print(f"error while working with tweepy: {e}")
