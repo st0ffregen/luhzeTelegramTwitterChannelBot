@@ -52,11 +52,10 @@ class TestBot(unittest.TestCase):
                                 "pictureLink": "https://pbs.twimg.com/media/EkMu0AaXYAAwoH4.jpg",
                                 "credits": "Stephan Schön / Sächsische Zeitung"}
 
-    statusNotAdvertisingArticleWithoutPictureId = "1309124710970667009"
-    statusNotAdvertisingArticleWithPictureId = "1349612228559908866"
-    # neu: muessen noch behandelt werden
-    statusWithTextAfterPhotoCreditsId = "1290923771818389506"
-    statusWithTextAfterLinkAndWithoutPhotoCreditsId = "1286978882349006848"
+    statusNotAdvertisingArticleWithoutPicture = {"id": "1309124710970667009"}
+    statusNotAdvertisingArticleWithPicture = {"id": "1349612228559908866"}
+    statusWithTextAfterPhotoCredits = {"id": "1290923771818389506"}
+    statusWithTextAfterLinkAndWithoutPhotoCredits = {"id": "1286978882349006848"}
     statusWithHashtagsInTextAndTextAndHashtagAfterLinkWithoutPhotoCredits = {"id": "1282685691005149189",
                                                                              "text": "Wegen der Coronakrise kann die <a href=\"https://twitter.com/hashtag/FridaysForFuture?src=hashtag_click\">#FridaysForFuture</a>-Bewegung nicht wie gewohnt auf der Straße demonstrieren. luhze-Redakteurin Nele Sikau sprach mit Aktivistin Annelie Berger über die Zukunft von @F4F_Leipzig.\n\n" + u"\u27A1" + "️https://t.co/Kn6rIv6QkY\n\nInterview aus der Juli-Ausgabe\n\n<a href=\"https://twitter.com/hashtag/Leipzig?src=hashtag_click\">#Leipzig</a> https://t.co/wCALUzqbzx"}
 
@@ -64,19 +63,33 @@ class TestBot(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.bot = main.initTelegramBot()
         cls.api = main.doAuth()
+        cls.allExampleTweets = []
         cls.statusWithCreditsURLsToResolveTweet = cls.api.get_status(cls.statusWithCreditsURLsToResolve['id'],
                                                                      tweet_mode="extended")
+        cls.allExampleTweets.append(cls.statusWithCreditsURLsToResolveTweet)
         cls.statusWithUserMentionsToResolveTweet = cls.api.get_status(cls.statusWithUserMentionsToResolve['id'],
                                                                       tweet_mode="extended")
+        cls.allExampleTweets.append(cls.statusWithUserMentionsToResolveTweet)
         cls.statusAdvertisingArticleTweet = cls.api.get_status(cls.statusAdvertisingArticle['id'],
                                                                tweet_mode="extended")
-        cls.statusIsDifferentWithoutPictureTweet = cls.api.get_status(cls.statusNotAdvertisingArticleWithoutPictureId,
+        cls.allExampleTweets.append(cls.statusAdvertisingArticleTweet)
+        cls.statusIsDifferentWithoutPictureTweet = cls.api.get_status(cls.statusNotAdvertisingArticleWithoutPicture['id'],
                                                                       tweet_mode="extended")
-        cls.statusIsDifferentWithPictureTweet = cls.api.get_status(cls.statusNotAdvertisingArticleWithPictureId,
+        cls.allExampleTweets.append(cls.statusIsDifferentWithoutPictureTweet)
+        cls.statusIsDifferentWithPictureTweet = cls.api.get_status(cls.statusNotAdvertisingArticleWithPicture['id'],
                                                                    tweet_mode="extended")
+        cls.allExampleTweets.append(cls.statusIsDifferentWithPictureTweet)
         cls.statusWithHashtagsInTextAndTextAndHashtagAfterLinkWithoutPhotoCreditsTweet = \
             cls.api.get_status(cls.statusWithHashtagsInTextAndTextAndHashtagAfterLinkWithoutPhotoCredits['id'],
                                tweet_mode="extended")
+        cls.allExampleTweets.append(cls.statusWithHashtagsInTextAndTextAndHashtagAfterLinkWithoutPhotoCreditsTweet)
+
+        cls.statusWithTextAfterPhotoCreditsTweet = cls.api.get_status(cls.statusWithTextAfterPhotoCredits['id'], tweet_mode="extended")
+        cls.allExampleTweets.append(cls.statusWithTextAfterPhotoCreditsTweet)
+
+        cls.statusWithTextAfterLinkAndWithoutPhotoCreditsTweet = cls.api.get_status(cls.statusWithTextAfterLinkAndWithoutPhotoCredits['id'], tweet_mode="extended")
+        cls.allExampleTweets.append(cls.statusWithTextAfterLinkAndWithoutPhotoCreditsTweet)
+
 
     def test_init_bot(self):
         self.assertIsNotNone(self.bot)
@@ -148,6 +161,21 @@ class TestBot(unittest.TestCase):
 
     def test_check_if_link_is_in_feed(self):
         self.assertFalse(main.checkIfLinkIsInFeed("https://www.luhze.de/2020/11/25/barriere-frei/"))
+
+    def test_all_example_tweets(self):
+        validTweets = []
+        for tweet in self.allExampleTweets:
+            if (u"\u27A1" in tweet.full_text and "https://t.co/" in tweet.full_text and
+                    True in [medium['type'] == 'photo' for medium in tweet.entities['media']] and
+                    tweet.in_reply_to_status_id is None):
+                validTweets.append(tweet)
+
+        tweetObjectArray = main.craftTweetObjectArray(validTweets)
+        resolvedUserMentionsArray = main.resolveUserMentions(tweetObjectArray)
+        removedUrlArray = main.removeLinkToTweet(resolvedUserMentionsArray)
+        replacedLinkArray = main.resolveUrls(removedUrlArray)
+        resolvedHashtagsArray = main.resolveHashtags(replacedLinkArray)
+        self.assertEqual(0, main.sendTweetToTelegram(self.bot, resolvedHashtagsArray))
 
     def test_main(self):
         self.assertEqual(0, main.main())

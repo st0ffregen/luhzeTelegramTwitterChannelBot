@@ -117,7 +117,8 @@ def fetchNewTweets(intervalSeconds, intervalDays):
     resolvedUserMentionsArray = resolveUserMentions(tweetObjectArray)
     removedUrlArray = removeLinkToTweet(resolvedUserMentionsArray)
     replacedLinkArray = resolveUrls(removedUrlArray)
-    return replacedLinkArray
+    resolvedHashtagsArray = resolveHashtags(replacedLinkArray)
+    return resolvedHashtagsArray
 
 
 def sendTweetToTelegram(bot, tweetArray):
