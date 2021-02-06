@@ -7,6 +7,9 @@ import os
 import telegram
 import traceback
 import feedparser
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 def checkIfLinkIsInFeed(link):
@@ -123,7 +126,14 @@ def fetchNewTweets(intervalSeconds, intervalDays):
 
 def sendTweetToTelegram(bot, tweetArray):
     print("send " + str(len(tweetArray)) + " tweets to telegram")
-    channelId = os.environ['TELEGRAM_CHANNEL_ID']
+    if os.environ['STAGE'] == "testing":
+        channelId = os.environ['TELEGRAM_CHANNEL_ID_TESTING']
+    elif os.environ['STAGE'] == "production":
+        channelId = os.environ['TELEGRAM_CHANNEL_ID']
+    else:
+        print("stage is not specified. exiting")
+        sys.exit(1)
+
     for tweet in tweetArray:
         bot.send_photo(chat_id=channelId, photo=tweet['pictureLink'], caption=tweet['text'], parse_mode=telegram.ParseMode.HTML)
     return 0
