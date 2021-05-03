@@ -12,16 +12,17 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def checkIfLinkIsInFeed(link):
+def getLinksToLuhzeArticles():
     print("read in feed")
     NewsFeed = feedparser.parse("https://luhze.de/rss")
     entries = NewsFeed.entries
 
-    for entry in entries:
-        if entry.link.strip() == link:
-            return True
+    linkArray = []
 
-    return False
+    for entry in entries:
+        linkArray.append(entry.link.strip())
+
+    return linkArray
 
 
 def initTelegramBot():
@@ -54,13 +55,39 @@ def getValidateTweet(tweetArray, intervalSeconds, intervalDays):
     print("validate tweets")
 
     validTweets = []
+    newestArticleLinksFromLuhze = getLinksToLuhzeArticles()
+
     for tweet in tweetArray:
-        if (datetime.now() - tweet.created_at).seconds <= intervalSeconds and \
-                    (datetime.now() - tweet.created_at).days <= intervalDays and \
-                u"\u27A1" in tweet.full_text and "https://t.co/" in tweet.full_text and \
-                True in [medium['type'] == 'photo' for medium in tweet.entities['media']] and \
-                tweet.in_reply_to_status_id is None and checkIfLinkIsInFeed(tweet.entities['urls'][0]['expanded_url'].strip()):
-            validTweets.append(tweet)
+        if not (datetime.now() - tweet.created_at).seconds <= intervalSeconds:
+            print('tweet ' + tweet.id_str + ' older than ' + str(intervalSeconds) + ' seconds')
+            continue
+
+        if not (datetime.now() - tweet.created_at).days <= intervalDays:
+            print('tweet ' + tweet.id_str + ' older than ' + str(intervalDays) + ' days')
+            continue
+
+        if u"\u27A1" not in tweet.full_text:
+            print(u"\u27A1" + ' not in tweet ' + tweet.id_str)
+            continue
+
+        if "https://t.co/" not in tweet.full_text:
+            print('no t.co link in tweet ' + tweet.id_str)
+            continue
+
+        if True not in [medium['type'] == 'photo' for medium in tweet.entities['media']]:
+            print('no photo in tweet ' + tweet.id_str)
+            continue
+
+        if tweet.in_reply_to_status_id is not None:
+            print('tweet ' + tweet.id_str + ' is a reply')
+            continue
+
+        if tweet.entities['urls'][0]['expanded_url'].strip() not in newestArticleLinksFromLuhze:
+            print('no link to a recent luhze article in tweet ' + tweet.id_str)
+            continue
+
+        print('tweet ' + tweet.id_str + ' is valid')
+        validTweets.append(tweet)
 
     return validTweets
 
@@ -69,7 +96,8 @@ def resolveUrls(tweetObjectArray):
     print("resolve urls")
     for tweet in tweetObjectArray:
         for url in tweet['tweet'].entities['urls']:
-            tweet['text'] = tweet['text'].replace(url['url'], '<a href="' + url['url'] + '">' + url['display_url'] + '</a>')
+            tweet['text'] = tweet['text'].replace(url['url'],
+                                                  '<a href="' + url['url'] + '">' + url['display_url'] + '</a>')
     return tweetObjectArray
 
 
@@ -77,7 +105,9 @@ def resolveHashtags(tweetObjectArray):
     print("resolve hashtags")
     for tweet in tweetObjectArray:
         for hashtag in tweet['tweet'].entities['hashtags']:
-            tweet['text'] = tweet['text'].replace('#' + hashtag['text'], '<a href="https://twitter.com/hashtag/' + hashtag['text'] + '?src=hashtag_click">#' + hashtag['text'] + '</a>')
+            tweet['text'] = tweet['text'].replace('#' + hashtag['text'],
+                                                  '<a href="https://twitter.com/hashtag/' + hashtag[
+                                                      'text'] + '?src=hashtag_click">#' + hashtag['text'] + '</a>')
     return tweetObjectArray
 
 
@@ -86,7 +116,8 @@ def resolveUserMentions(tweetObjectArray):
     for tweet in tweetObjectArray:
         for user in tweet['tweet'].entities['user_mentions']:
             screenName = user['screen_name']
-            tweet['text'] = tweet['text'].replace("@" + screenName, '<a href="https://twitter.com/' + screenName + '">@' + screenName + '</a>')
+            tweet['text'] = tweet['text'].replace("@" + screenName,
+                                                  '<a href="https://twitter.com/' + screenName + '">@' + screenName + '</a>')
     return tweetObjectArray
 
 
@@ -99,7 +130,7 @@ def craftTweetObjectArray(tweetArray):
         linkToArticleShort = tweet.entities['urls'][0]['display_url'].strip()
 
         tweetObjectArray.append({'tweet': tweet, 'text': text, 'pictureLink': pictureLink,
-                                'linkToArticle': addATagToLink(linkToArticle, linkToArticleShort)})
+                                 'linkToArticle': addATagToLink(linkToArticle, linkToArticleShort)})
 
     return tweetObjectArray
 
@@ -116,9 +147,8 @@ def removeLinkToTweet(tweetObjectArray):
     return tweetObjectArray
 
 
-def fetchNewTweets(intervalSeconds, intervalDays):
+def fetchNewTweets(intervalSeconds, intervalDays, api):
     print("fetch new tweets")
-    api = doAuth()
     lastTweets = getLastTweet(api)
     validTweets = getValidateTweet(lastTweets, intervalSeconds, intervalDays)
     if len(validTweets) == 0:
@@ -143,7 +173,8 @@ def sendTweetToTelegram(bot, tweetArray):
         sys.exit(1)
 
     for tweet in tweetArray:
-        bot.send_photo(chat_id=channelId, photo=tweet['pictureLink'], caption=tweet['text'], parse_mode=telegram.ParseMode.HTML)
+        bot.send_photo(chat_id=channelId, photo=tweet['pictureLink'], caption=tweet['text'],
+                       parse_mode=telegram.ParseMode.HTML)
     return 0
 
 
@@ -159,7 +190,8 @@ def main():
     bot = None
 
     try:
-        newTweets = fetchNewTweets(intervalSeconds, intervalDays)
+        api = doAuth()
+        newTweets = fetchNewTweets(intervalSeconds, intervalDays, api)
         if len(newTweets) > 0:
             bot = initTelegramBot()
             sendTweetToTelegram(bot, newTweets)

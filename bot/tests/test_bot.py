@@ -58,6 +58,7 @@ class TestBot(unittest.TestCase):
     statusWithTextAfterLinkAndWithoutPhotoCredits = {"id": "1286978882349006848"}
     statusWithHashtagsInTextAndTextAndHashtagAfterLinkWithoutPhotoCredits = {"id": "1282685691005149189",
                                                                              "text": "Wegen der Coronakrise kann die <a href=\"https://twitter.com/hashtag/FridaysForFuture?src=hashtag_click\">#FridaysForFuture</a>-Bewegung nicht wie gewohnt auf der Straße demonstrieren. luhze-Redakteurin Nele Sikau sprach mit Aktivistin Annelie Berger über die Zukunft von @F4F_Leipzig.\n\n" + u"\u27A1" + "️https://t.co/Kn6rIv6QkY\n\nInterview aus der Juli-Ausgabe\n\n<a href=\"https://twitter.com/hashtag/Leipzig?src=hashtag_click\">#Leipzig</a> https://t.co/wCALUzqbzx"}
+    statusIsNormal = {"id": "1362451829473296394"}
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -90,6 +91,9 @@ class TestBot(unittest.TestCase):
         cls.statusWithTextAfterLinkAndWithoutPhotoCreditsTweet = cls.api.get_status(cls.statusWithTextAfterLinkAndWithoutPhotoCredits['id'], tweet_mode="extended")
         cls.allExampleTweets.append(cls.statusWithTextAfterLinkAndWithoutPhotoCreditsTweet)
 
+        cls.statusIsNormalTweet = cls.api.get_status(cls.statusIsNormal['id'], tweet_mode="extended")
+        cls.allExampleTweets.append(cls.statusIsNormalTweet)
+
 
     def test_init_bot(self):
         self.assertIsNotNone(self.bot)
@@ -109,6 +113,8 @@ class TestBot(unittest.TestCase):
         self.assertFalse(main.getValidateTweet([self.statusAdvertisingArticleTweet], 600, 0))
         self.assertFalse(
             main.getValidateTweet([self.statusIsDifferentWithoutPictureTweet, self.statusIsDifferentWithPictureTweet], 600, 0))
+        self.assertFalse(main.getValidateTweet([self.statusIsNormalTweet], 999999, 99999))
+        # hier sollte man die getNewestLuhzeTweets Function nochmal mocken, damit das mit den 999999 auch eine Liste mit Element produziert
 
     def test_craft_tweet_object_array(self):
         tweetObjectArray = main.craftTweetObjectArray(
@@ -152,15 +158,15 @@ class TestBot(unittest.TestCase):
 
     def test_fetch_new_tweets(self):
         # kann sein, dass gerade ein artikel tweet hochgeladen wurde, dann schlägt der test fehl
-        self.assertFalse(main.fetchNewTweets(600, 0))
+        self.assertFalse(main.fetchNewTweets(600, 0, self.api))
         # kann sein das fehlschlägt wenn länger kein Artikel mehr kam
-        self.assertTrue(main.fetchNewTweets(60000, 10))
+        self.assertTrue(main.fetchNewTweets(60000, 10, self.api))
 
     def test_send_tweet_to_telegram(self):
         self.assertEqual(0, main.sendTweetToTelegram(self.bot, [{"text": "test <a href=\"https://luhze.de\">test link</a>\n test text", "pictureLink": "https://pbs.twimg.com/media/ElRbFNCXEAQ4u6Q.jpg"}]))
 
     def test_check_if_link_is_in_feed(self):
-        self.assertFalse(main.checkIfLinkIsInFeed("https://www.luhze.de/2020/11/25/barriere-frei/"))
+        self.assertNotIn("https://www.luhze.de/2020/11/25/barriere-frei/", main.getLinksToLuhzeArticles())
 
     def test_all_example_tweets(self):
         validTweets = []
