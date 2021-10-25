@@ -147,19 +147,41 @@ def removeLinkToTweet(tweetObjectArray):
     return tweetObjectArray
 
 
-def fetchNewTweets(intervalSeconds, intervalDays, api):
+def fetchNewTweets(intervalSeconds, intervalDays, api, bot):
     print("fetch new tweets")
     lastTweets = getLastTweet(api)
     validTweets = getValidateTweet(lastTweets, intervalSeconds, intervalDays)
     if len(validTweets) == 0:
-        print("no new tweets in feed found")
+        print('no valid tweets')
         return []
     tweetObjectArray = craftTweetObjectArray(validTweets)
-    resolvedUserMentionsArray = resolveUserMentions(tweetObjectArray)
+    notSentValidTweets = getNotSentArticles(bot, tweetObjectArray)
+    resolvedUserMentionsArray = resolveUserMentions(notSentValidTweets)
     removedUrlArray = removeLinkToTweet(resolvedUserMentionsArray)
     replacedLinkArray = resolveUrls(removedUrlArray)
     resolvedHashtagsArray = resolveHashtags(replacedLinkArray)
     return resolvedHashtagsArray
+
+
+def getNotSentArticles(bot, tweetObjects):
+    notSentArticles = []
+
+    for tweetObject in tweetObjects:
+        if not isArticleAlreadyInChannel(bot, tweetObject):
+            notSentArticles.append(tweetObject)
+
+    return notSentArticles
+
+
+def isArticleAlreadyInChannel(bot, tweetObject):
+    updates = bot.get_updates(timeout=120)
+
+    for update in updates:
+        message = update['channel_post']['text']
+        if tweetObject['linkToArticle'].split('>')[1].replace('</a', '').strip() in message:
+            return True
+
+    return False
 
 
 def sendTweetToTelegram(bot, tweetArray):
@@ -191,9 +213,9 @@ def main():
 
     try:
         api = doAuth()
-        newTweets = fetchNewTweets(intervalSeconds, intervalDays, api)
+        bot = initTelegramBot()
+        newTweets = fetchNewTweets(intervalSeconds, intervalDays, api, bot)
         if len(newTweets) > 0:
-            bot = initTelegramBot()
             sendTweetToTelegram(bot, newTweets)
 
     except tweepy.error.TweepError as e:
