@@ -51,18 +51,18 @@ def getLastTweet(api):
     return api.user_timeline(id="luhze_leipzig", count=5, tweet_mode='extended')
 
 
-def getValidateTweet(tweetArray, intervalSeconds, intervalDays):
+def getValidateTweet(tweetArray, intervalSeconds, intervalDays, upperTimeBound):
     print("validate tweets")
 
     validTweets = []
     newestArticleLinksFromLuhze = getLinksToLuhzeArticles()
 
     for tweet in tweetArray:
-        if not (datetime.now() - tweet.created_at).seconds <= intervalSeconds:
+        if not (upperTimeBound - tweet.created_at).seconds <= intervalSeconds:
             print('tweet ' + tweet.id_str + ' older than ' + str(intervalSeconds) + ' seconds')
             continue
 
-        if not (datetime.now() - tweet.created_at).days <= intervalDays:
+        if not (upperTimeBound - tweet.created_at).days <= intervalDays:
             print('tweet ' + tweet.id_str + ' older than ' + str(intervalDays) + ' days')
             continue
 
@@ -147,10 +147,10 @@ def removeLinkToTweet(tweetObjectArray):
     return tweetObjectArray
 
 
-def fetchNewTweets(intervalSeconds, intervalDays, api, bot):
+def fetchNewTweets(intervalSeconds, intervalDays, upperTimeBound, api, bot):
     print("fetch new tweets")
     lastTweets = getLastTweet(api)
-    validTweets = getValidateTweet(lastTweets, intervalSeconds, intervalDays)
+    validTweets = getValidateTweet(lastTweets, intervalSeconds, intervalDays, upperTimeBound)
     if len(validTweets) == 0:
         print('no valid tweets')
         return []
@@ -201,9 +201,11 @@ def sendTweetToTelegram(bot, tweetArray):
 
 
 def main():
+    startingTime = datetime.utcnow()
+
     print("---")
     print("starting bot")
-    print("utc time now: " + datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
+    print("utc time now: " + startingTime.strftime('%Y-%m-%d %H:%M:%S'))
 
     intervalSeconds = int(os.environ['INTERVAL_SECONDS'])
     intervalDays = int(os.environ['INTERVAL_DAYS'])
@@ -211,7 +213,7 @@ def main():
     try:
         api = doAuth()
         bot = initTelegramBot()
-        newTweets = fetchNewTweets(intervalSeconds, intervalDays, api, bot)
+        newTweets = fetchNewTweets(intervalSeconds, intervalDays, startingTime, api, bot)
         if len(newTweets) > 0:
             sendTweetToTelegram(bot, newTweets)
 
