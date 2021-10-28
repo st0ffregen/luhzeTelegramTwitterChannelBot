@@ -205,11 +205,8 @@ def main():
     print("starting bot")
     print("utc time now: " + datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
 
-    telegramAdminChatId = os.environ['TELEGRAM_ADMIN_CHAT_ID']
     intervalSeconds = int(os.environ['INTERVAL_SECONDS'])
     intervalDays = int(os.environ['INTERVAL_DAYS'])
-
-    bot = None
 
     try:
         api = doAuth()
@@ -218,19 +215,9 @@ def main():
         if len(newTweets) > 0:
             sendTweetToTelegram(bot, newTweets)
 
-    except tweepy.error.TweepError as e:
-        print(f"error while working with tweepy: {e}")
+    except Exception as e:
+        print(f"error: {e}")
         traceback.print_exc()
-        bot.send_message(chat_id=telegramAdminChatId,
-                         text=f"error while working with tweepy: {e}")
-        print("exiting")
-        print(sys.exc_info())
-        sys.exit(1)
-    except telegram.TelegramError as e:
-        print(f"error while working with telegram api: {e}")
-        traceback.print_exc()
-        bot.send_message(chat_id=telegramAdminChatId,
-                         text=f"error while working with telegram api: {e}")
         print("exiting")
         print(sys.exc_info())
         sys.exit(1)
