@@ -1,0 +1,7 @@
+feedparser==5.2.1
+python-dotenv==0.15.0
+python-telegram-bot==13.3
+tweepy==3.9.0
+
+
+
