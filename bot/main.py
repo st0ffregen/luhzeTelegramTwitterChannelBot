@@ -147,7 +147,7 @@ def removeLinkToTweet(tweetObjectArray):
     return tweetObjectArray
 
 
-def fetchNewTweets(intervalSeconds, intervalDays, upperTimeBound, api, bot):
+def fetchNewTweets(intervalSeconds, intervalDays, upperTimeBound, api):
     print("fetch new tweets")
     lastTweets = getLastTweet(api)
     validTweets = getValidateTweet(lastTweets, intervalSeconds, intervalDays, upperTimeBound)
@@ -155,7 +155,7 @@ def fetchNewTweets(intervalSeconds, intervalDays, upperTimeBound, api, bot):
         print('no valid tweets')
         return []
     tweetObjectArray = craftTweetObjectArray(validTweets)
-    notSentValidTweets = getNotSentArticles(bot, tweetObjectArray)
+    notSentValidTweets = getNotSentArticles(tweetObjectArray)
     resolvedUserMentionsArray = resolveUserMentions(notSentValidTweets)
     removedUrlArray = removeLinkToTweet(resolvedUserMentionsArray)
     replacedLinkArray = resolveUrls(removedUrlArray)
@@ -163,25 +163,29 @@ def fetchNewTweets(intervalSeconds, intervalDays, upperTimeBound, api, bot):
     return resolvedHashtagsArray
 
 
-def getNotSentArticles(bot, tweetObjects):
-    notSentArticles = []
+def getNotSentArticles(tweetObjectArray):
+    try:
+        file = open('sentTweetsList', 'r')
+        return compareFileContentToTweetArray(file, tweetObjectArray)
+    except FileNotFoundError:
+        newFile = open('sentTweetsList', 'w')
+        newFile.close()
+        file = open('sentTweetsList', 'r')
+        return compareFileContentToTweetArray(file, tweetObjectArray)
 
-    for tweetObject in tweetObjects:
-        if not isArticleAlreadyInChannel(bot, tweetObject):
-            notSentArticles.append(tweetObject)
 
-    return notSentArticles
+def compareFileContentToTweetArray(file, tweetObjectArray):
+    notSentTweets = []
+    content = file.read().splitlines()
+    for tweetObject in tweetObjectArray:
+        if tweetObject['linkToArticle'].split('">')[0].replace('<a href="', '').strip() not in content:
+            notSentTweets.append(tweetObject)
+        else:
+            print('tweet already posted to channel')
 
+    file.close()
 
-def isArticleAlreadyInChannel(bot, tweetObject):
-    updates = bot.get_updates(timeout=120)
-
-    for update in updates:
-        message = update['channel_post']['text']
-        if tweetObject['linkToArticle'].split('>')[1].replace('</a', '').strip() in message:
-            return True
-
-    return False
+    return notSentTweets
 
 
 def sendTweetToTelegram(bot, tweetArray):
@@ -200,6 +204,14 @@ def sendTweetToTelegram(bot, tweetArray):
     return 0
 
 
+def writeTweetsToFile(tweetObjectArray):
+    file = open('sentTweetsList', 'a')
+    for tweetObject in tweetObjectArray:
+        file.write(tweetObject['linkToArticle'].split('">')[0].replace('<a href="', '').strip() + '\n')
+
+    file.close()
+
+
 def main():
     startingTime = datetime.utcnow()
 
@@ -212,10 +224,11 @@ def main():
 
     try:
         api = doAuth()
-        bot = initTelegramBot()
-        newTweets = fetchNewTweets(intervalSeconds, intervalDays, startingTime, api, bot)
+        newTweets = fetchNewTweets(intervalSeconds, intervalDays, startingTime, api)
         if len(newTweets) > 0:
+            bot = initTelegramBot()
             sendTweetToTelegram(bot, newTweets)
+            writeTweetsToFile(newTweets)
 
     except Exception as e:
         print(f"error: {e}")
