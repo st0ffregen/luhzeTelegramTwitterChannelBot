@@ -1,10 +1,5 @@
-FROM python:3
+FROM python:3.7
 WORKDIR /usr/src/app
 COPY . .
-RUN apt-get update
-RUN apt-get install -y python3-pip
-RUN pip3 install tweepy
-RUN pip3 install feedparser
-RUN pip3 install python-dotenv
-RUN pip3 install python-telegram-bot --upgrade
+RUN pip install -r requirements.txt
 CMD ["python", "/usr/src/app/main.py"]
