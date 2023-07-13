@@ -1,4 +1,6 @@
 # luhzeTelegramTwitterChannelBot
+Dieser Bot ist deprecated, da die Free Tier von Twitter keine Reads mehr erlaubt.
+
 Veröffentlicht Artikel-Tweets von luhze in einen Telegram Channel
 
 # Build
